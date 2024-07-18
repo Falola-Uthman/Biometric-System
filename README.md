@@ -69,43 +69,41 @@ Ref 3: Biometric System Logs.
 ### Enrollment Script
 
 ### Imports
-i.	import serial: For serial communication with the fingerprint scanner.
-ii.	import time: Provides time-related functions for delays and timeouts.
-iii.	import RPi.GPIO as GPIO: Controls the GPIO pins on the Raspberry Pi.
-iv.	import re: Provides regular expression matching operations.
-v.	from rpi_lcd import LCD: Manages the LCD display connected to the Raspberry Pi.
-vi.	import sqlite3: Handles database operations for storing and retrieving user information.
-vii.	import adafruit_fingerprint: Interfaces with the Adafruit fingerprint sensor.
+-	import serial: For serial communication with the fingerprint scanner.
+-	import time: Provides time-related functions for delays and timeouts.
+-	import RPi.GPIO as GPIO: Controls the GPIO pins on the Raspberry Pi.
+-	import re: Provides regular expression matching operations.
+-	from rpi_lcd import LCD: Manages the LCD display connected to the Raspberry Pi.
+-	import sqlite3: Handles database operations for storing and retrieving user information.
+-	import adafruit_fingerprint: Interfaces with the Adafruit fingerprint sensor.
 
 ### Functions
-i.	initialize_database(): This function creates the SQLite database and users table if they do not already exist. It initializes the storage system for user information and fingerprint data, ensuring the database is ready to store new users.
-ii.	add_user_to_database(user_id, name, fingerprint_id): This function inserts a new user's details into the database. It adds newly enrolled users to the system, associating their fingerprint ID with their personal details for future authentication.
-iii.	delete_user_from_database_by_id(user_id): This function deletes a user from the database using their user ID. It allows the removal of users from the system based on their unique ID.
-iv.	delete_user_from_database_by_name(name): This function deletes a user from the database using their name. It provides flexibility in removing users by allowing deletion based on the user's name.
-v.	delete_user_from_database_by_fingerprint(fingerprint_id): This function deletes a user from the database using their fingerprint ID. It allows deletion of users by directly using their biometric identifier.
-vi.	view_users(): This function retrieves and displays a list of all users from the database. It provides an overview of all enrolled users, helping in managing and verifying the user database.
-vi.	find_user(): This function searches for a user in the database by ID, name, or fingerprint. It allows administrators to locate user details based on various criteria, enhancing user management capabilities.
-vii.	enroll_finger(user_id, name): This function captures and processes the fingerprint images, creates a fingerprint template, and stores the template along with the user's details in the database. It is the core function for enrolling new users into the system, ensuring that their biometric data is captured accurately and stored securely.
-viii.	delete_user(): This function prompts the administrator to delete a user by ID, name, or fingerprint. It provides a flexible interface for removing users from the system, ensuring that the database can be maintained and updated as needed.
-Main Loop
-The main loop (initialize_database()) provides a menu for administrators to enroll users, delete users, view users, and find users. It facilitates user management by providing easy access to enrollment and administrative functions through a simple interface.
+-	initialize_database(): This function creates the SQLite database and users table if they do not already exist. It initializes the storage system for user information and fingerprint data, ensuring the database is ready to store new users.
+-	add_user_to_database(user_id, name, fingerprint_id): This function inserts a new user's details into the database. It adds newly enrolled users to the system, associating their fingerprint ID with their personal details for future authentication.
+-	delete_user_from_database_by_id(user_id): This function deletes a user from the database using their user ID. It allows the removal of users from the system based on their unique ID.
+-	delete_user_from_database_by_name(name): This function deletes a user from the database using their name. It provides flexibility in removing users by allowing deletion based on the user's name.
+-	delete_user_from_database_by_fingerprint(fingerprint_id): This function deletes a user from the database using their fingerprint ID. It allows deletion of users by directly using their biometric identifier.
+-	view_users(): This function retrieves and displays a list of all users from the database. It provides an overview of all enrolled users, helping in managing and verifying the user database.
+-	find_user(): This function searches for a user in the database by ID, name, or fingerprint. It allows administrators to locate user details based on various criteria, enhancing user management capabilities.
+-	enroll_finger(user_id, name): This function captures and processes the fingerprint images, creates a fingerprint template, and stores the template along with the user's details in the database. It is the core function for enrolling new users into the system, ensuring that their biometric data is captured accurately and stored securely.
+-	delete_user(): This function prompts the administrator to delete a user by ID, name, or fingerprint. It provides a flexible interface for removing users from the system, ensuring that the database can be maintained and updated as needed.
+-   Main Loop: The main loop (initialize_database()) provides a menu for administrators to enroll users, delete users, view users, and find users. It facilitates user management by providing easy access to enrollment and administrative functions through a simple interface.
 
 
 ### Authentication Script
 
 
 ### Imports
-i.	import serial: For serial communication with the fingerprint scanner.
-ii.	import time: Provides time-related functions for delays and timeouts.
-iii.	import RPi.GPIO as GPIO: Controls the GPIO pins on the Raspberry Pi.
-iv.	from rpi_lcd import LCD: Manages the LCD display connected to the Raspberry Pi.
-v.	import sqlite3: Handles database operations for storing and retrieving user information.
-vi.	import adafruit_fingerprint: Interfaces with the Adafruit fingerprint sensor.
+-	import serial: For serial communication with the fingerprint scanner.
+-	import time: Provides time-related functions for delays and timeouts.
+-	import RPi.GPIO as GPIO: Controls the GPIO pins on the Raspberry Pi.
+-	from rpi_lcd import LCD: Manages the LCD display connected to the Raspberry Pi.
+-	import sqlite3: Handles database operations for storing and retrieving user information.
+-	import adafruit_fingerprint: Interfaces with the Adafruit fingerprint sensor.
 
 ### Functions
-i.	get_user_from_database(fingerprint_id): This function connects to the SQLite database to retrieve the user details associated with a given fingerprint ID. It is crucial for verifying the identity of the user by comparing the fingerprint ID obtained during the authentication process with stored user data.
-ii.	authenticate(): This function manages the authentication process. It checks for motion using the PIR sensor, captures and processes the fingerprint, searches the database for a match, and provides feedback through the LCD and LEDs. This ensures that only authorized users can gain access by verifying their fingerprint against the stored database while providing real-time feedback and control signals to the user.
-Main Loop
-The main loop continuously calls the authenticate() function to handle ongoing user authentication, keeping the system in a ready state to authenticate users at any time.
+-	get_user_from_database(fingerprint_id): This function connects to the SQLite database to retrieve the user details associated with a given fingerprint ID. It is crucial for verifying the identity of the user by comparing the fingerprint ID obtained during the authentication process with stored user data.
+-	authenticate(): This function manages the authentication process. It checks for motion using the PIR sensor, captures and processes the fingerprint, searches the database for a match, and provides feedback through the LCD and LEDs. This ensures that only authorized users can gain access by verifying their fingerprint against the stored database while providing real-time feedback and control signals to the user.
+-   Main Loop: The main loop continuously calls the authenticate() function to handle ongoing user authentication, keeping the system in a ready state to authenticate users at any time.
 
 
