@@ -68,387 +68,44 @@ Ref 3: Biometric System Logs.
 
 ### Enrollment Script
 
+### Imports
+i.	import serial: For serial communication with the fingerprint scanner.
+ii.	import time: Provides time-related functions for delays and timeouts.
+iii.	import RPi.GPIO as GPIO: Controls the GPIO pins on the Raspberry Pi.
+iv.	import re: Provides regular expression matching operations.
+v.	from rpi_lcd import LCD: Manages the LCD display connected to the Raspberry Pi.
+vi.	import sqlite3: Handles database operations for storing and retrieving user information.
+vii.	import adafruit_fingerprint: Interfaces with the Adafruit fingerprint sensor.
 
+### Functions
+i.	initialize_database(): This function creates the SQLite database and users table if they do not already exist. It initializes the storage system for user information and fingerprint data, ensuring the database is ready to store new users.
+ii.	add_user_to_database(user_id, name, fingerprint_id): This function inserts a new user's details into the database. It adds newly enrolled users to the system, associating their fingerprint ID with their personal details for future authentication.
+iii.	delete_user_from_database_by_id(user_id): This function deletes a user from the database using their user ID. It allows the removal of users from the system based on their unique ID.
+iv.	delete_user_from_database_by_name(name): This function deletes a user from the database using their name. It provides flexibility in removing users by allowing deletion based on the user's name.
+v.	delete_user_from_database_by_fingerprint(fingerprint_id): This function deletes a user from the database using their fingerprint ID. It allows deletion of users by directly using their biometric identifier.
+vi.	view_users(): This function retrieves and displays a list of all users from the database. It provides an overview of all enrolled users, helping in managing and verifying the user database.
+vi.	find_user(): This function searches for a user in the database by ID, name, or fingerprint. It allows administrators to locate user details based on various criteria, enhancing user management capabilities.
+vii.	enroll_finger(user_id, name): This function captures and processes the fingerprint images, creates a fingerprint template, and stores the template along with the user's details in the database. It is the core function for enrolling new users into the system, ensuring that their biometric data is captured accurately and stored securely.
+viii.	delete_user(): This function prompts the administrator to delete a user by ID, name, or fingerprint. It provides a flexible interface for removing users from the system, ensuring that the database can be maintained and updated as needed.
+Main Loop
+The main loop (initialize_database()) provides a menu for administrators to enroll users, delete users, view users, and find users. It facilitates user management by providing easy access to enrollment and administrative functions through a simple interface.
 
-import serial
-import time
-import RPi.GPIO as GPIO
-import re
-from rpi_lcd import LCD
-import sqlite3
-import adafruit_fingerprint
-
-# Define pin numbers
-PIR_PIN = 17
-RED_LED_PIN = 27
-GREEN_LED_PIN = 18
-
-# Setup GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(RED_LED_PIN, GPIO.OUT)
-GPIO.setup(GREEN_LED_PIN, GPIO.OUT)
-
-# Initialize LCD
-lcd = LCD()
-
-# Setup UART
-uart = serial.Serial("/dev/serial0", baudrate=57600, timeout=1)
-finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
-
-# Initialize database
-def initialize_database():
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, fingerprint_id INTEGER)''')
-    conn.commit()
-    conn.close()
-
-def add_user_to_database(user_id, name, fingerprint_id):
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''INSERT INTO users (id, name, fingerprint_id) VALUES (?, ?, ?)''', (user_id, name, fingerprint_id))
-    conn.commit()
-    conn.close()
-
-def delete_user_from_database_by_id(user_id):
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''DELETE FROM users WHERE id = ?''', (user_id,))
-    conn.commit()
-    conn.close()
-
-def delete_user_from_database_by_name(name):
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''DELETE FROM users WHERE name = ?''', (name,))
-    conn.commit()
-    conn.close()
-
-def delete_user_from_database_by_fingerprint(fingerprint_id):
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''DELETE FROM users WHERE fingerprint_id = ?''', (fingerprint_id,))
-    conn.commit()
-    conn.close()
-
-def view_users():
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''SELECT id, name FROM users''')
-    users = cursor.fetchall()
-    conn.close()
-    if users:
-        print("Current users:")
-        for user in users:
-            print(f"ID: {user[0]}, Name: {user[1]}")
-        for user in users:
-            lcd.text(f"ID: {user[0]}", 1)
-            lcd.text(f"Name: {user[1]}", 2)
-            time.sleep(2)
-            lcd.clear()
-    else:
-        print("No users found.")
-        lcd.text("No users found.", 1)
-        time.sleep(2)
-        lcd.clear()
-
-def find_user():
-    option = input("Search by ID (i), Name (n), or Fingerprint (f)? ")
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    if option == 'i':
-        user_id = int(input("Enter user ID: "))
-        cursor.execute('''SELECT id, name FROM users WHERE id = ?''', (user_id,))
-    elif option == 'n':
-        name = input("Enter user name: ")
-        cursor.execute('''SELECT id, name FROM users WHERE name = ?''', (name,))
-    elif option == 'f':
-        lcd.text("Place finger", 1)
-        while finger.get_image() != adafruit_fingerprint.OK:
-            pass
-        if finger.image_2_tz(1) != adafruit_fingerprint.OK:
-            lcd.text("Error reading", 2)
-            return
-        if finger.finger_search() != adafruit_fingerprint.OK:
-            lcd.text("Not recognized", 2)
-            return
-        cursor.execute('''SELECT id, name FROM users WHERE fingerprint_id = ?''', (finger.finger_id,))
-    user = cursor.fetchone()
-    conn.close()
-    if user:
-        print(f"ID: {user[0]}, Name: {user[1]}")
-        lcd.text(f"ID: {user[0]}", 1)
-        lcd.text(f"Name: {user[1]}", 2)
-    else:
-        print("User not found.")
-        lcd.text("User not found.", 1)
-    time.sleep(2)
-    lcd.clear()
-
-def enroll_finger(user_id, name):
-    # Enroll the fingerprint
-    for fingerimg in range(1, 3):
-        if fingerimg == 1:
-            lcd.text("Place finger", 1)
-        else:
-            lcd.text("Place same finger", 1)
-        while True:
-            i = finger.get_image()
-            if i == adafruit_fingerprint.OK:
-                lcd.text("Image taken", 2)
-                break
-            elif i == adafruit_fingerprint.NOFINGER:
-                lcd.text("No finger detected", 2)
-            else:
-                lcd.text("Other error", 2)
-
-        lcd.text("Templating...", 2)
-        i = finger.image_2_tz(fingerimg)
-        if i == adafruit_fingerprint.OK:
-            lcd.text("Templated", 2)
-        else:
-            lcd.text("Error templating", 2)
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            return False
-
-        lcd.text("Remove finger", 2)
-        time.sleep(1)
-        while i != adafruit_fingerprint.NOFINGER:
-            i = finger.get_image()
-
-    lcd.text("Creating model...", 2)
-    i = finger.create_model()
-    if i == adafruit_fingerprint.OK:
-        lcd.text("Model created", 2)
-    else:
-        lcd.text("Prints did not match", 2)
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(RED_LED_PIN, GPIO.LOW)
-        time.sleep(1)
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(RED_LED_PIN, GPIO.LOW)
-        return False
-
-    fingerprint_id = user_id  # Assuming user_id is used as fingerprint_id for simplicity
-
-    lcd.text("Storing model...", 2)
-    i = finger.store_model(fingerprint_id)
-    if i == adafruit_fingerprint.OK:
-        lcd.text("Stored", 2)
-        add_user_to_database(user_id, name, fingerprint_id)
-        GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-        time.sleep(1)
-        GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-        return True
-    else:
-        lcd.text("Failed to store", 2)
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(RED_LED_PIN, GPIO.LOW)
-        time.sleep(1)
-        GPIO.output(RED_LED_PIN, GPIO.HIGH)
-        time.sleep(1)
-        GPIO.output(RED_LED_PIN, GPIO.LOW)
-        return False
-
-def delete_user():
-    option = input("Delete by ID (i), Name (n), or Fingerprint (f)? ")
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    user = None
-    if option == 'i':
-        user_id = int(input("Enter user ID: "))
-        cursor.execute('''SELECT id, name FROM users WHERE id = ?''', (user_id,))
-        user = cursor.fetchone()
-    elif option == 'n':
-        name = input("Enter user name: ")
-        cursor.execute('''SELECT id, name FROM users WHERE name = ?''', (name,))
-        user = cursor.fetchone()
-    elif option == 'f':
-        lcd.text("Place finger", 1)
-        while finger.get_image() != adafruit_fingerprint.OK:
-            pass
-        if finger.image_2_tz(1) != adafruit_fingerprint.OK:
-            lcd.text("Error reading", 2)
-            return
-        if finger.finger_search() != adafruit_fingerprint.OK:
-            lcd.text("Not recognized", 2)
-            return
-        cursor.execute('''SELECT id, name FROM users WHERE fingerprint_id = ?''', (finger.finger_id,))
-        user = cursor.fetchone()
-    if user:
-        user_id, name = user
-        confirm = input(f"Confirm deletion of user with ID {user_id} and name {name}? (y/n): ")
-        if confirm.lower() == 'y':
-            cursor.execute('''DELETE FROM users WHERE id = ?''', (user_id,))
-            conn.commit()
-            GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-            time.sleep(1)
-            GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-            print("User deleted.")
-            lcd.text("User deleted.", 1)
-        else:
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            print("Deletion cancelled.")
-            lcd.text("Deletion cancelled.", 1)
-    else:
-        print("User not found.")
-        lcd.text("User not found.", 1)
-    conn.close()
-
-initialize_database()
-
-while True:
-    print("e) Enroll")
-    print("d) Delete")
-    print("v) View users")
-    print("f) Find user")
-    option = input("Select option: ")
-    if option == 'e':
-        user_id = int(input("Enter ID: "))
-        name = input("Enter name: ")
-        if enroll_finger(user_id, name):
-            print("Enrollment successful.")
-            lcd.text("Enroll successful", 1)
-            GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-            time.sleep(1)
-            GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-        else:
-            print("Enrollment failed.")
-            lcd.text("Enroll failed", 1)
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.HIGH)
-            time.sleep(1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-    elif option == 'd':
-        delete_user()
-    elif option == 'v':
-        view_users()
-    elif option == 'f':
-        find_user()
-    time.sleep(2)
-    lcd.clear()
 
 ### Authentication Script
 
 
-import serial
-import time
-import RPi.GPIO as GPIO
-from rpi_lcd import LCD
-import sqlite3
-import adafruit_fingerprint
+### Imports
+i.	import serial: For serial communication with the fingerprint scanner.
+ii.	import time: Provides time-related functions for delays and timeouts.
+iii.	import RPi.GPIO as GPIO: Controls the GPIO pins on the Raspberry Pi.
+iv.	from rpi_lcd import LCD: Manages the LCD display connected to the Raspberry Pi.
+v.	import sqlite3: Handles database operations for storing and retrieving user information.
+vi.	import adafruit_fingerprint: Interfaces with the Adafruit fingerprint sensor.
 
-
-PIR_PIN = 17
-RED_LED_PIN = 27
-GREEN_LED_PIN = 18
-
-
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(RED_LED_PIN, GPIO.OUT)
-GPIO.setup(GREEN_LED_PIN, GPIO.OUT)
-GPIO.setup(PIR_PIN, GPIO.IN)
-
-
-lcd = LCD()
-
-
-uart = serial.Serial("/dev/serial0", baudrate=57600, timeout=1)
-finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
-
-
-def get_user_from_database(fingerprint_id):
-    conn = sqlite3.connect('fingerprints.db')
-    cursor = conn.cursor()
-    cursor.execute('''SELECT name FROM users WHERE fingerprint_id = ?''', (fingerprint_id,))
-    user = cursor.fetchone()
-    conn.close()
-    return user
-
-def authenticate():
-    while True:
-        if GPIO.input(PIR_PIN):
-            lcd.text("Welcome", 1)
-            GPIO.output(RED_LED_PIN, GPIO.LOW)
-            lcd.text("Place finger", 2)
-            while finger.get_image() != adafruit_fingerprint.OK:
-                pass
-            if finger.image_2_tz(1) != adafruit_fingerprint.OK:
-                lcd.text("Error reading", 2)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.LOW)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.LOW)
-                return
-            if finger.finger_search() != adafruit_fingerprint.OK:
-                lcd.text("Not recognized", 2)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.LOW)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.LOW)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                lcd.clear()
-                time.sleep(1)
-                return
-            user = get_user_from_database(finger.finger_id)
-            if user:
-                lcd.text(f"Welcome, {user[0]}", 1)
-                GPIO.output(GREEN_LED_PIN, GPIO.HIGH)
-                lcd.text("Access Granted", 2)
-                time.sleep(5)
-                GPIO.output(GREEN_LED_PIN, GPIO.LOW)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                lcd.clear()
-                time.sleep(1)
-            else:
-                lcd.text("User not found", 2)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.LOW)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.HIGH)
-                time.sleep(1)
-                GPIO.output(RED_LED_PIN, GPIO.LOW)
-
-GPIO.output(RED_LED_PIN, GPIO.HIGH)
-
-while True:
-    authenticate()
+### Functions
+i.	get_user_from_database(fingerprint_id): This function connects to the SQLite database to retrieve the user details associated with a given fingerprint ID. It is crucial for verifying the identity of the user by comparing the fingerprint ID obtained during the authentication process with stored user data.
+ii.	authenticate(): This function manages the authentication process. It checks for motion using the PIR sensor, captures and processes the fingerprint, searches the database for a match, and provides feedback through the LCD and LEDs. This ensures that only authorized users can gain access by verifying their fingerprint against the stored database while providing real-time feedback and control signals to the user.
+Main Loop
+The main loop continuously calls the authenticate() function to handle ongoing user authentication, keeping the system in a ready state to authenticate users at any time.
 
 
