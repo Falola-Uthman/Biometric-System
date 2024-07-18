@@ -67,6 +67,8 @@ Ref 2: Biometric System GUI.
 Ref 3: Biometric System Logs.
 
 ### Enrollment Script
+
+
 import serial
 import time
 import RPi.GPIO as GPIO
@@ -75,24 +77,24 @@ from rpi_lcd import LCD
 import sqlite3
 import adafruit_fingerprint
 
-# Define pin numbers
+
 PIR_PIN = 17
 RED_LED_PIN = 27
 GREEN_LED_PIN = 18
 
-# Setup GPIO
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RED_LED_PIN, GPIO.OUT)
 GPIO.setup(GREEN_LED_PIN, GPIO.OUT)
 
-# Initialize LCD
+
 lcd = LCD()
 
-# Setup UART
+
 uart = serial.Serial("/dev/serial0", baudrate=57600, timeout=1)
 finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
 
-# Initialize database
+
 def initialize_database():
     conn = sqlite3.connect('fingerprints.db')
     cursor = conn.cursor()
@@ -356,6 +358,8 @@ while True:
     lcd.clear()
 
 ### Authentication Script
+
+
 import serial
 import time
 import RPi.GPIO as GPIO
@@ -363,25 +367,25 @@ from rpi_lcd import LCD
 import sqlite3
 import adafruit_fingerprint
 
-# Define pin numbers
+
 PIR_PIN = 17
 RED_LED_PIN = 27
 GREEN_LED_PIN = 18
 
-# Setup GPIO
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RED_LED_PIN, GPIO.OUT)
 GPIO.setup(GREEN_LED_PIN, GPIO.OUT)
 GPIO.setup(PIR_PIN, GPIO.IN)
 
-# Initialize LCD
+
 lcd = LCD()
 
-# Setup UART
+
 uart = serial.Serial("/dev/serial0", baudrate=57600, timeout=1)
 finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
 
-# Function to retrieve user details from database
+
 def get_user_from_database(fingerprint_id):
     conn = sqlite3.connect('fingerprints.db')
     cursor = conn.cursor()
