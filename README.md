@@ -221,7 +221,7 @@ def enroll_finger(user_id, name):
         while i != adafruit_fingerprint.NOFINGER:
             i = finger.get_image()
 
-    lcd.text("Creating model...", 2)
+    lcd.text("Creating model...", 2) gggggggggg
     i = finger.create_model()
     if i == adafruit_fingerprint.OK:
         lcd.text("Model created", 2)
